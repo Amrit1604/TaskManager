@@ -22,7 +22,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(email, password);
+      await login({ email, password });
       toast.success('AUTHENTICATED');
       navigate('/dashboard');
     } catch (err) {
