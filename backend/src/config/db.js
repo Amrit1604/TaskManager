@@ -16,6 +16,7 @@ const pool = mysql.createPool({
   queueLimit:         0,
   // Return JS Date objects for DATE/DATETIME columns
   dateStrings:        false,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
 });
 
 /**
