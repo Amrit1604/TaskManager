@@ -43,7 +43,7 @@ const AuthController = {
 
   /** POST /auth/logout */
   logout(req, res) {
-    res.clearCookie('token');
+    AuthService.clearCookieToken(res);
     res.json({ message: 'Logged out successfully' });
   },
 

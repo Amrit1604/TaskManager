@@ -7,6 +7,7 @@
  * which prevents XSS attacks from stealing tokens (unlike localStorage).
  */
 const jwt = require('jsonwebtoken');
+const AuthService = require('../services/authService');
 
 function authenticate(req, res, next) {
   const token = req.cookies?.token;
@@ -21,7 +22,7 @@ function authenticate(req, res, next) {
     next();
   } catch (err) {
     // Token expired or tampered with
-    res.clearCookie('token');
+    AuthService.clearCookieToken(res);
     return res.status(401).json({ error: true, message: 'Session expired. Please log in again.' });
   }
 }
