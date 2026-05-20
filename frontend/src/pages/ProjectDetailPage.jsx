@@ -58,6 +58,65 @@ function AddMemberModal({ projectId, onClose, onAdded }) {
   );
 }
 
+function SubmitWorkModal({ task, onClose, onSubmitted }) {
+  const [content, setContent] = useState('');
+  const [fileUrl, setFileUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!content.trim()) return;
+    setLoading(true);
+    try {
+      await tasksAPI.submitWork(task.id, { content, file_url: fileUrl });
+      toast.success('WORK SUBMITTED SUCCESSFULLY');
+      onSubmitted();
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit work');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal title={`Submit Work: ${task.title}`} onClose={onClose}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div>
+          <label htmlFor="submit-content" style={{ fontWeight: 600 }}>Work Content / Explanatory Description *</label>
+          <textarea
+            id="submit-content"
+            className="input"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Provide a detailed description of completed work here..."
+            rows={5}
+            style={{ resize: 'vertical' }}
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="submit-file" style={{ fontWeight: 600 }}>File URL (Optional)</label>
+          <input
+            id="submit-file"
+            type="text"
+            className="input"
+            value={fileUrl}
+            onChange={(e) => setFileUrl(e.target.value)}
+            placeholder="e.g. https://github.com/... or cloud storage URL"
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'flex-end', borderTop: '2px solid var(--border)', paddingTop: 24 }}>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Dismiss</button>
+          <button type="submit" className="btn btn-primary" disabled={loading || !content.trim()}>
+            {loading ? 'Submitting...' : 'Submit'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -69,6 +128,7 @@ export default function ProjectDetailPage() {
   const [showTask,    setShowTask]    = useState(false);
   const [showMember,  setShowMember]  = useState(false);
   const [editTask,    setEditTask]    = useState(null);
+  const [submitWorkTask, setSubmitWorkTask] = useState(null);
   const [filterStatus, setFilterStatus] = useState('');
 
   const fetchAll = useCallback(async () => {
@@ -148,19 +208,21 @@ export default function ProjectDetailPage() {
         </div>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignSelf: 'flex-end' }}>
           {isAdminOrCreator && (
-            <button className="btn btn-danger" onClick={handleDeleteProject}>
-              Delete Project
-            </button>
+            <>
+              <button className="btn btn-danger" onClick={handleDeleteProject}>
+                Delete Project
+              </button>
+              <button className="btn btn-outline" onClick={() => setShowMember(true)}>
+                Add Personnel
+              </button>
+              <button className="btn btn-primary" onClick={() => setShowTask(true)}>
+                Draft Task
+              </button>
+            </>
           )}
           <Link to={`/kanban?project=${id}`} className="btn btn-outline">
             Kanban View
           </Link>
-          <button className="btn btn-outline" onClick={() => setShowMember(true)}>
-            Add Personnel
-          </button>
-          <button className="btn btn-primary" onClick={() => setShowTask(true)}>
-            Draft Task
-          </button>
         </div>
       </div>
 
@@ -199,9 +261,16 @@ export default function ProjectDetailPage() {
                 ) : filtered.map((task) => {
                   const overdue = isOverdue(task);
                   return (
-                    <tr key={task.id} className={overdue ? 'overdue' : ''}>
+                    <tr key={task.id} className={overdue ? 'overdue' : ''} style={overdue ? { background: '#FFF1F2' } : {}}>
                       <td>
-                        <div style={{ fontWeight: 600 }}>{task.title}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontWeight: 600 }}>{task.title}</div>
+                          {overdue && (
+                            <span style={{ color: '#E11D48', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700 }}>
+                              ⚠️ OVERDUE
+                            </span>
+                          )}
+                        </div>
                         {task.description && <div style={{ fontSize: 14, fontStyle: 'italic', color: 'var(--muted-foreground)', marginTop: 4 }}>{task.description.slice(0, 50)}…</div>}
                       </td>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12, textTransform: 'uppercase' }}>
@@ -209,13 +278,20 @@ export default function ProjectDetailPage() {
                       </td>
                       <td><PriorityBadge priority={task.priority} /></td>
                       <td><StatusBadge status={task.status} /></td>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: overdue ? 700 : 400 }}>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: overdue ? 700 : 400, color: overdue ? '#E11D48' : 'inherit' }}>
                         {formatDate(task.due_date)}
                       </td>
                       <td>
-                        <button className="btn btn-ghost" style={{ padding: '8px 16px', fontSize: 12 }} onClick={() => setEditTask(task)}>
-                          Manage
-                        </button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button className="btn btn-ghost" style={{ padding: '8px 16px', fontSize: 12 }} onClick={() => setEditTask(task)}>
+                            Manage
+                          </button>
+                          {user?.role === 'member' && task.assignee_id === user?.id && (
+                            <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: 12 }} onClick={() => setSubmitWorkTask(task)}>
+                              Submit Work
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -253,6 +329,13 @@ export default function ProjectDetailPage() {
       {showTask  && <TaskModal projectId={id} onClose={() => setShowTask(false)} onSaved={fetchAll} />}
       {showMember && <AddMemberModal projectId={id} onClose={() => setShowMember(false)} onAdded={fetchAll} />}
       {editTask  && <TaskModal task={editTask} projectId={id} onClose={() => setEditTask(null)} onSaved={fetchAll} />}
+      {submitWorkTask && (
+        <SubmitWorkModal
+          task={submitWorkTask}
+          onClose={() => setSubmitWorkTask(null)}
+          onSubmitted={fetchAll}
+        />
+      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors,
+  DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext, verticalListSortingStrategy, useSortable,
@@ -14,6 +14,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { tasksAPI, projectsAPI } from '../api';
 import { formatDate, isOverdue } from '../utils/helpers';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const COLUMNS = [
   { id: 'todo',        label: 'To Do' },
@@ -21,30 +22,51 @@ const COLUMNS = [
   { id: 'done',        label: 'Done' },
 ];
 
-function KanbanCard({ task, isDragging }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
+function KanbanCard({ task, isDragging, user }) {
+  const isDragDisabled = user?.role === 'member' && task.assignee_id !== user?.id;
+
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: task.id,
+    disabled: isDragDisabled,
+  });
+
+  const overdue = isOverdue(task);
+  const cardClassName = `kanban-card ${overdue ? 'overdue' : ''}`;
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
+    cursor: isDragDisabled ? 'not-allowed' : 'grab',
   };
-  const overdue = isOverdue(task);
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <div className="kanban-card" style={{ borderLeftWidth: task.priority === 'high' ? '8px' : '2px', borderLeftColor: 'var(--foreground)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-          {task.priority} Priority
+      <div className={cardClassName} style={{ borderLeftWidth: task.priority === 'high' ? '8px' : '2px', borderLeftColor: 'var(--foreground)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            {task.priority} Priority
+          </div>
+          {isDragDisabled && (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              🔒 READ-ONLY
+            </div>
+          )}
         </div>
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 700, lineHeight: 1.2, marginBottom: 16 }}>
           {task.title}
+          {overdue && (
+            <span style={{ color: '#E11D48', fontSize: 12, fontWeight: 700, marginLeft: 8, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+              ⚠️ OVERDUE
+            </span>
+          )}
         </div>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid var(--border-light)', paddingTop: 16, marginTop: 16 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase' }}>
             <div>{task.assignee_name || 'UNASSIGNED'}</div>
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: overdue ? 700 : 400 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: overdue ? 700 : 400, color: overdue ? '#E11D48' : 'inherit' }}>
             {task.due_date ? formatDate(task.due_date) : 'NO DUE DATE'}
           </div>
         </div>
@@ -53,9 +75,11 @@ function KanbanCard({ task, isDragging }) {
   );
 }
 
-function KanbanColumn({ column, tasks, activeId }) {
+function KanbanColumn({ column, tasks, activeId, user }) {
+  const { setNodeRef } = useDroppable({ id: column.id });
+
   return (
-    <div className="kanban-column texture-diagonal">
+    <div ref={setNodeRef} className="kanban-column texture-diagonal">
       <div className="kanban-column-header">
         <span style={{ fontFamily: 'var(--font-serif)', fontWeight: 700, fontSize: 24 }}>{column.label}.</span>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700 }}>
@@ -69,7 +93,7 @@ function KanbanColumn({ column, tasks, activeId }) {
           </div>
         ) : (
           tasks.map((task) => (
-            <KanbanCard key={task.id} task={task} isDragging={activeId === task.id} />
+            <KanbanCard key={task.id} task={task} isDragging={activeId === task.id} user={user} />
           ))
         )}
       </SortableContext>
@@ -78,6 +102,7 @@ function KanbanColumn({ column, tasks, activeId }) {
 }
 
 export default function KanbanPage() {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
 
@@ -125,14 +150,25 @@ export default function KanbanPage() {
 
     if (!task || !newStatus || task.status === newStatus) return;
 
+    // Enforce role permission checks on drag end
+    const isDragDisabled = user?.role === 'member' && task.assignee_id !== user?.id;
+    if (isDragDisabled) {
+      toast.error('You can only update status for your assigned tasks');
+      return;
+    }
+
     // Optimistic UI update
+    const oldStatus = task.status;
     setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: newStatus } : t));
 
     try {
       await tasksAPI.update(task.id, { status: newStatus });
-    } catch {
-      setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: task.status } : t));
-      toast.error('FAILED TO UPDATE');
+      toast.success('Task status updated');
+    } catch (err) {
+      // Rollback optimistic update
+      setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: oldStatus } : t));
+      const errMsg = err.response?.data?.message || 'Failed to update status';
+      toast.error(errMsg);
     }
   };
 
@@ -171,12 +207,12 @@ export default function KanbanPage() {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="kanban-board">
             {COLUMNS.map((col) => (
-              <KanbanColumn key={col.id} column={col} tasks={tasksByColumn(col.id)} activeId={activeId} />
+              <KanbanColumn key={col.id} column={col} tasks={tasksByColumn(col.id)} activeId={activeId} user={user} />
             ))}
           </div>
           <DragOverlay>
             {activeTask && (
-              <div className="kanban-card dragging" style={{ borderLeftWidth: activeTask.priority === 'high' ? '8px' : '2px', borderLeftColor: 'var(--foreground)' }}>
+              <div className={`kanban-card dragging ${isOverdue(activeTask) ? 'overdue' : ''}`} style={{ borderLeftWidth: activeTask.priority === 'high' ? '8px' : '2px', borderLeftColor: 'var(--foreground)' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
                   {activeTask.priority} Priority
                 </div>

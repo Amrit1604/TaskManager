@@ -73,17 +73,34 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 -- ----------------------------------------------------------------
--- Audit Log — records every task status change
+-- Audit Log — records all task status, priority, due date, assignee, creation, and submission changes
 -- ----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS audit_logs (
   id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   task_id     INT UNSIGNED  NOT NULL,
   changed_by  INT UNSIGNED  NOT NULL,
-  old_status  ENUM('todo', 'in_progress', 'done') NOT NULL,
-  new_status  ENUM('todo', 'in_progress', 'done') NOT NULL,
+  action      VARCHAR(50)   NOT NULL,
+  field       VARCHAR(50)   NULL,
+  old_value   TEXT          NULL,
+  new_value   TEXT          NULL,
   changed_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (task_id)    REFERENCES tasks(id) ON DELETE CASCADE,
   FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE RESTRICT,
   INDEX idx_audit_task    (task_id),
   INDEX idx_audit_changed_at (changed_at)
+);
+
+-- ----------------------------------------------------------------
+-- Task Submissions — member submits work content + optional file
+-- ----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS task_submissions (
+  id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  task_id     INT UNSIGNED  NOT NULL,
+  user_id     INT UNSIGNED  NOT NULL,
+  content     TEXT          NOT NULL,
+  file_url    VARCHAR(512)  NULL DEFAULT NULL,
+  submitted_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_submission_task (task_id)
 );

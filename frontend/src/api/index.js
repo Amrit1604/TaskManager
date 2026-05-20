@@ -26,6 +26,8 @@ export const tasksAPI = {
   update:        (taskId, data)      => api.put(`/tasks/${taskId}`, data),
   delete:        (taskId)            => api.delete(`/tasks/${taskId}`),
   getAuditLog:   (taskId)            => api.get(`/tasks/${taskId}/audit`),
+  submitWork:    (taskId, data)      => api.post(`/tasks/${taskId}/submission`, data),
+  getSubmissions: (taskId)           => api.get(`/tasks/${taskId}/submission`),
 };
 
 export const usersAPI = {

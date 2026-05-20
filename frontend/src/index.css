@@ -438,6 +438,35 @@ tbody tr.overdue td { font-style: italic; }
   box-shadow: 8px 8px 0 var(--foreground);
 }
 
+.kanban-card.overdue {
+  border: 2px solid #E11D48 !important;
+  background: #FFF1F2;
+}
+
+.kanban-card.overdue:hover {
+  background: #E11D48;
+  color: #FFFFFF;
+  border-color: #E11D48 !important;
+}
+
+.kanban-card.overdue:hover * {
+  color: #FFFFFF !important;
+  border-color: #FFFFFF !important;
+}
+
+.dashboard-content-grid {
+  display: grid;
+  grid-template-columns: 2.5fr 1.2fr;
+  gap: 48px;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-content-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ── Sidebar ─────────────────────────────────────────────── */
 .sidebar {
   width: 280px;

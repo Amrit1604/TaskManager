@@ -1,15 +1,23 @@
 /**
  * models/auditLogModel.js
- * Audit log: records every task status change with who changed it and when.
+ * Audit log: records task creations, status updates, assignees, priorities, due dates, and work submissions.
  */
 const { pool } = require('../config/db');
 
 const AuditLogModel = {
-  /** Insert a new audit log entry when a task status changes */
-  async create({ task_id, changed_by, old_status, new_status }) {
+  /** Insert a new audit log entry */
+  async create({ task_id, changed_by, action, field, old_value, new_value }) {
     const [result] = await pool.execute(
-      'INSERT INTO audit_logs (task_id, changed_by, old_status, new_status) VALUES (?, ?, ?, ?)',
-      [task_id, changed_by, old_status, new_status]
+      `INSERT INTO audit_logs (task_id, changed_by, action, field, old_value, new_value)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        task_id,
+        changed_by,
+        action,
+        field || null,
+        old_value !== null && old_value !== undefined ? String(old_value) : null,
+        new_value !== null && new_value !== undefined ? String(new_value) : null,
+      ]
     );
     return result.insertId;
   },

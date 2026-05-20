@@ -25,4 +25,8 @@ router.put('/:taskId',    TaskController.update);
 router.delete('/:taskId', TaskController.remove);
 router.get('/:taskId/audit', TaskController.getTaskAudit);
 
+// Task Submissions routes
+router.post('/:taskId/submission', TaskController.submitWork);
+router.get('/:taskId/submission', TaskController.getSubmissions);
+
 module.exports = router;
