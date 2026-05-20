@@ -1,34 +1,34 @@
 /**
  * components/Modal.jsx
- * Generic modal overlay with click-outside to close and keyboard Escape support.
+ * Minimalist Monochrome Modal.
  */
 import { useEffect } from 'react';
-import { X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
-export default function Modal({ title, onClose, children, maxWidth = 520 }) {
-  // Close on Escape key
+export default function Modal({ title, onClose, children }) {
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  return (
-    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal" style={{ maxWidth }} role="dialog" aria-modal="true" aria-label={title}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{title}</h2>
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, borderRadius: 6, display: 'flex' }}
-            aria-label="Close modal"
-          >
-            <X size={20} />
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal texture-grid" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+          <div>
+            <h2 className="text-4xl" style={{ fontFamily: 'var(--font-serif)', marginBottom: 16 }}>{title}</h2>
+            <div className="rule-thick" style={{ width: 80 }}></div>
+          </div>
+          <button className="btn btn-ghost" style={{ padding: 8 }} onClick={onClose} title="Close">
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 24, lineHeight: 0.5 }}>×</span>
           </button>
         </div>
-        {children}
+        <div>
+          {children}
+        </div>
       </div>
-    </div>
+    </div>,
+    document.getElementById('root')
   );
 }

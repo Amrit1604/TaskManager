@@ -1,17 +1,15 @@
 /**
  * pages/ProjectDetailPage.jsx
- * View a single project: members list, tasks table, and task creation.
+ * Minimalist Monochrome Project Detail Page.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { projectsAPI, tasksAPI, usersAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge, PriorityBadge } from '../components/Badge';
 import TaskModal from '../components/TaskModal';
 import Modal from '../components/Modal';
 import { formatDate, isOverdue } from '../utils/helpers';
-import { ArrowLeft, Plus, UserPlus, Users, Trash2, Kanban } from 'lucide-react';
-import { Link as RouterLink } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 function AddMemberModal({ projectId, onClose, onAdded }) {
@@ -29,7 +27,7 @@ function AddMemberModal({ projectId, onClose, onAdded }) {
     setLoading(true);
     try {
       await projectsAPI.addMember(projectId, parseInt(userId));
-      toast.success('Member added');
+      toast.success('PERSONNEL ASSIGNED');
       onAdded();
       onClose();
     } catch (err) {
@@ -40,19 +38,19 @@ function AddMemberModal({ projectId, onClose, onAdded }) {
   };
 
   return (
-    <Modal title="Add Member" onClose={onClose}>
-      <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <Modal title="Assign Personnel" onClose={onClose}>
+      <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
         <div>
-          <label htmlFor="member-select">Select User</label>
+          <label htmlFor="member-select">Select Individual</label>
           <select id="member-select" className="input" value={userId} onChange={(e) => setUserId(e.target.value)} required>
-            <option value="">-- Choose a user --</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email}) — {u.role}</option>)}
+            <option value="">-- Select --</option>
+            {users.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
           </select>
         </div>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'flex-end', borderTop: '2px solid var(--border)', paddingTop: 24 }}>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Dismiss</button>
           <button type="submit" className="btn btn-primary" disabled={loading || !userId}>
-            {loading ? 'Adding…' : 'Add Member'}
+            {loading ? 'Processing...' : 'Assign'}
           </button>
         </div>
       </form>
@@ -62,9 +60,9 @@ function AddMemberModal({ projectId, onClose, onAdded }) {
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const isAdmin  = user?.role === 'admin';
-
+  
   const [project,     setProject]     = useState(null);
   const [tasks,       setTasks]       = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -92,74 +90,96 @@ export default function ProjectDetailPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleRemoveMember = async (memberId, memberName) => {
-    if (!confirm(`Remove ${memberName} from this project?`)) return;
+    if (!confirm(`Revoke access for ${memberName}?`)) return;
     try {
       await projectsAPI.removeMember(id, memberId);
-      toast.success('Member removed');
+      toast.success('ACCESS REVOKED');
       fetchAll();
     } catch {
       toast.error('Failed to remove member');
     }
   };
 
+  const handleDeleteProject = async () => {
+    if (!confirm(`Are you sure you want to delete this project?`)) return;
+    try {
+      await projectsAPI.delete(id);
+      toast.success('PROJECT ARCHIVED');
+      navigate('/projects');
+    } catch {
+      toast.error('Failed to delete project');
+    }
+  };
+
   const filtered = filterStatus ? tasks.filter((t) => t.status === filterStatus) : tasks;
 
+  const isAdminOrCreator = user?.role === 'admin' || project?.created_by === user?.id;
+
   if (loading) return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 80 }} />)}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+      {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 120 }} />)}
     </div>
   );
 
   if (!project) return (
-    <div className="card" style={{ padding: 60, textAlign: 'center' }}>
-      <p style={{ color: 'var(--text-muted)' }}>Project not found or access denied.</p>
-      <Link to="/projects" className="btn btn-ghost" style={{ marginTop: 16, display: 'inline-flex' }}>Back to Projects</Link>
+    <div className="card texture-grid" style={{ padding: 120, textAlign: 'center', border: '4px solid var(--border)' }}>
+      <h3 className="text-5xl" style={{ fontFamily: 'var(--font-serif)', marginBottom: 16 }}>Not Found</h3>
+      <Link to="/projects" className="btn btn-outline" style={{ marginTop: 32 }}>Return to Directory</Link>
     </div>
   );
 
   return (
-    <div>
+    <div className="fade-in">
       {/* Breadcrumb */}
-      <Link to="/projects" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-muted)', textDecoration: 'none', marginBottom: 24 }}>
-        <ArrowLeft size={14} /> Projects
+      <Link to="/projects" style={{ display: 'inline-flex', fontFamily: 'var(--font-mono)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--foreground)', textDecoration: 'none', marginBottom: 40, borderBottom: '1px solid var(--border)', paddingBottom: 4 }}>
+        ← Directory
       </Link>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 6px' }}>{project.name}</h1>
-          {project.description && <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>{project.description}</p>}
-        </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link to={`/kanban?project=${id}`} className="btn btn-ghost">
-            <Kanban size={15} /> Kanban View
-          </Link>
-          {isAdmin && (
-            <>
-              <button className="btn btn-ghost" onClick={() => setShowMember(true)}>
-                <UserPlus size={15} /> Add Member
-              </button>
-              <button className="btn btn-primary" onClick={() => setShowTask(true)}>
-                <Plus size={15} /> New Task
-              </button>
-            </>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 64, flexWrap: 'wrap', gap: 40 }}>
+        <div style={{ maxWidth: 800 }}>
+          <h1 className="text-8xl" style={{ fontFamily: 'var(--font-serif)', marginBottom: 24, lineHeight: 1 }}>{project.name}</h1>
+          <div className="rule-thick" style={{ width: 120, marginBottom: 24 }}></div>
+          {project.description && (
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 24, lineHeight: 1.6, color: 'var(--muted-foreground)' }}>
+              {project.description}
+            </p>
           )}
+        </div>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignSelf: 'flex-end' }}>
+          {isAdminOrCreator && (
+            <button className="btn btn-danger" onClick={handleDeleteProject}>
+              Delete Project
+            </button>
+          )}
+          <Link to={`/kanban?project=${id}`} className="btn btn-outline">
+            Kanban View
+          </Link>
+          <button className="btn btn-outline" onClick={() => setShowMember(true)}>
+            Add Personnel
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowTask(true)}>
+            Draft Task
+          </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, alignItems: 'start' }}>
+      <div className="rule-ultra" style={{ marginBottom: 64 }}></div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 64, alignItems: 'start' }}>
         {/* Tasks */}
-        <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontWeight: 600 }}>Tasks ({tasks.length})</span>
-            <select className="input" style={{ width: 'auto' }} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+            <h2 className="text-4xl" style={{ fontFamily: 'var(--font-serif)' }}>Register</h2>
+            <select className="input" style={{ width: 'auto', border: '1px solid var(--border)' }} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
               <option value="">All Statuses</option>
               <option value="todo">To Do</option>
               <option value="in_progress">In Progress</option>
               <option value="done">Done</option>
             </select>
           </div>
-          <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
+          
+          <div className="table-wrapper">
             <table>
               <thead>
                 <tr>
@@ -168,34 +188,33 @@ export default function ProjectDetailPage() {
                   <th>Priority</th>
                   <th>Status</th>
                   <th>Due</th>
-                  <th></th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-                    No tasks yet{isAdmin ? ' — create one!' : ''}
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: 64, fontStyle: 'italic', color: 'var(--muted-foreground)' }}>
+                    Register is empty.
                   </td></tr>
                 ) : filtered.map((task) => {
                   const overdue = isOverdue(task);
                   return (
                     <tr key={task.id} className={overdue ? 'overdue' : ''}>
                       <td>
-                        <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{task.title}</div>
-                        {task.description && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{task.description.slice(0, 50)}…</div>}
+                        <div style={{ fontWeight: 600 }}>{task.title}</div>
+                        {task.description && <div style={{ fontSize: 14, fontStyle: 'italic', color: 'var(--muted-foreground)', marginTop: 4 }}>{task.description.slice(0, 50)}…</div>}
                       </td>
-                      <td>{task.assignee_name || <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12, textTransform: 'uppercase' }}>
+                        {task.assignee_name || '—'}
+                      </td>
                       <td><PriorityBadge priority={task.priority} /></td>
                       <td><StatusBadge status={task.status} /></td>
-                      <td style={{ fontSize: 13, whiteSpace: 'nowrap' }}>
-                        {overdue
-                          ? <span style={{ color: 'var(--danger)' }}>⚠ {formatDate(task.due_date)}</span>
-                          : formatDate(task.due_date)
-                        }
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: overdue ? 700 : 400 }}>
+                        {formatDate(task.due_date)}
                       </td>
                       <td>
-                        <button className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setEditTask(task)}>
-                          {isAdmin ? 'Edit' : 'Update'}
+                        <button className="btn btn-ghost" style={{ padding: '8px 16px', fontSize: 12 }} onClick={() => setEditTask(task)}>
+                          Manage
                         </button>
                       </td>
                     </tr>
@@ -207,28 +226,26 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Members Panel */}
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <Users size={16} color="var(--accent-light)" />
-            <span style={{ fontWeight: 600 }}>Members ({project.members?.length || 0})</span>
+        <div style={{ borderLeft: '2px solid var(--border)', paddingLeft: 40, marginLeft: -20 }}>
+          <h2 className="text-3xl" style={{ fontFamily: 'var(--font-serif)', marginBottom: 24 }}>Personnel</h2>
+          <div className="rule-thick" style={{ marginBottom: 24 }}></div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {project.members?.map((member) => (
+              <div key={member.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 16, borderBottom: '1px solid var(--border-light)' }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{member.name}</div>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 14, color: 'var(--muted-foreground)' }}>{member.role}</div>
+                </div>
+                {isAdminOrCreator && member.id !== user.id && (
+                  <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 10 }}
+                    onClick={() => handleRemoveMember(member.id, member.name)}>
+                    REVOKE
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
-          {project.members?.map((member) => (
-            <div key={member.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent), #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                {member.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{member.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'capitalize' }}>{member.role}</div>
-              </div>
-              {isAdmin && member.id !== user.id && (
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4 }}
-                  onClick={() => handleRemoveMember(member.id, member.name)} title="Remove member">
-                  <Trash2 size={13} />
-                </button>
-              )}
-            </div>
-          ))}
         </div>
       </div>
 

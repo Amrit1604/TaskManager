@@ -56,18 +56,23 @@ const TaskController = {
     }
   },
 
-  /** POST /projects/:id/tasks — admin only */
+  /** POST /projects/:id/tasks — project members */
   async create(req, res, next) {
     try {
       const project = await ProjectModel.findById(req.params.id);
       if (!project) return res.status(404).json({ error: true, message: 'Project not found' });
 
+      if (req.user.role !== 'admin') {
+        const isMember = await ProjectModel.isMember(project.id, req.user.id);
+        if (!isMember) return res.status(403).json({ error: true, message: 'You must be a member of this project to create tasks' });
+      }
+
       const { title, description, assignee_id, priority, status, due_date } = req.body;
 
       // Verify assignee is a project member
       if (assignee_id) {
-        const isMember = await ProjectModel.isMember(project.id, assignee_id);
-        if (!isMember) {
+        const isAssigneeMember = await ProjectModel.isMember(project.id, assignee_id);
+        if (!isAssigneeMember) {
           return res.status(400).json({ error: true, message: 'Assignee must be a member of this project' });
         }
       }
@@ -95,34 +100,23 @@ const TaskController = {
     }
   },
 
-  /** PUT /tasks/:id — admin: full update; member: status only */
+  /** PUT /tasks/:id — project members can full update */
   async update(req, res, next) {
     try {
       const task = await TaskModel.findById(req.params.id);
       if (!task) return res.status(404).json({ error: true, message: 'Task not found' });
 
-      const isAdmin = req.user.role === 'admin';
-      const isAssignee = task.assignee_id === req.user.id;
-
-      // Members can only update their assigned tasks
-      if (!isAdmin && !isAssignee) {
-        return res.status(403).json({ error: true, message: 'You can only update tasks assigned to you' });
-      }
-
-      let updatedTask;
-      const oldStatus = task.status;
-
-      if (isAdmin) {
-        // Admin can update everything
-        const { title, description, assignee_id, priority, status, due_date } = req.body;
-        updatedTask = await TaskModel.update(task.id, { title, description, assignee_id, priority, status, due_date });
-      } else {
-        // Member can only change status
-        if (!req.body.status) {
-          return res.status(400).json({ error: true, message: 'Members can only update the task status' });
+      if (req.user.role !== 'admin') {
+        const isMember = await ProjectModel.isMember(task.project_id, req.user.id);
+        if (!isMember) {
+          return res.status(403).json({ error: true, message: 'You must be a member of the project to update its tasks' });
         }
-        updatedTask = await TaskModel.updateStatus(task.id, req.body.status);
       }
+
+      const oldStatus = task.status;
+      const { title, description, assignee_id, priority, status, due_date } = req.body;
+
+      const updatedTask = await TaskModel.update(task.id, { title, description, assignee_id, priority, status, due_date });
 
       // Log status change to audit table if status changed
       if (req.body.status && req.body.status !== oldStatus) {
@@ -140,11 +134,16 @@ const TaskController = {
     }
   },
 
-  /** DELETE /tasks/:id — admin only (soft delete) */
+  /** DELETE /tasks/:id — project members (soft delete) */
   async remove(req, res, next) {
     try {
       const task = await TaskModel.findById(req.params.id);
       if (!task) return res.status(404).json({ error: true, message: 'Task not found' });
+
+      if (req.user.role !== 'admin') {
+        const isMember = await ProjectModel.isMember(task.project_id, req.user.id);
+        if (!isMember) return res.status(403).json({ error: true, message: 'You must be a member of the project to delete its tasks' });
+      }
 
       await TaskModel.softDelete(req.params.id);
       res.json({ message: 'Task deleted' });
@@ -153,9 +152,17 @@ const TaskController = {
     }
   },
 
-  /** GET /tasks/:id/audit — admin only */
+  /** GET /tasks/:id/audit — project members */
   async getTaskAudit(req, res, next) {
     try {
+      const task = await TaskModel.findById(req.params.id);
+      if (!task) return res.status(404).json({ error: true, message: 'Task not found' });
+
+      if (req.user.role !== 'admin') {
+        const isMember = await ProjectModel.isMember(task.project_id, req.user.id);
+        if (!isMember) return res.status(403).json({ error: true, message: 'Access denied' });
+      }
+
       const logs = await AuditLogModel.findByTask(req.params.id);
       res.json({ logs });
     } catch (err) {
@@ -163,9 +170,14 @@ const TaskController = {
     }
   },
 
-  /** GET /projects/:id/audit — admin only */
+  /** GET /projects/:id/audit — project members */
   async getProjectAudit(req, res, next) {
     try {
+      if (req.user.role !== 'admin') {
+        const isMember = await ProjectModel.isMember(req.params.id, req.user.id);
+        if (!isMember) return res.status(403).json({ error: true, message: 'Access denied' });
+      }
+
       const logs = await AuditLogModel.findByProject(req.params.id);
       res.json({ logs });
     } catch (err) {

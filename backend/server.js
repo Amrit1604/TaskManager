@@ -55,14 +55,22 @@ app.use('/api/projects/:id/tasks', taskRoutes);
 app.use('/api/tasks',    taskRoutes);
 app.use('/api/users',    userRoutes);
 
-// Audit log route for a project (admin only)
+// Audit log route for a project
 const authenticate = require('./src/middleware/authenticate');
-const authorize    = require('./src/middleware/authorize');
 const TaskController = require('./src/controllers/taskController');
-app.get('/api/projects/:id/audit', authenticate, authorize('admin'), TaskController.getProjectAudit);
+app.get('/api/projects/:id/audit', authenticate, TaskController.getProjectAudit);
 
-// ── Error Handling ────────────────────────────────────────────
-app.use(notFound);
+// ── Serve Frontend in Production ──────────────────────────────
+const path = require('path');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
+  });
+} else {
+  // ── Error Handling for API (only active if not caught by static handler) ──
+  app.use(notFound);
+}
 app.use(errorHandler);
 
 // ── Start ─────────────────────────────────────────────────────

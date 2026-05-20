@@ -1,9 +1,8 @@
 /**
  * components/Sidebar.jsx
- * Role-aware navigation sidebar.
+ * Minimalist Monochrome navigation sidebar.
  */
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FolderKanban, Kanban, ClipboardList, LogOut, CheckSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { getInitials } from '../utils/helpers';
@@ -14,76 +13,67 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     await logout();
-    toast.success('Logged out');
+    toast.success('LOGGED OUT');
     navigate('/login');
   };
 
   const navItems = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/projects',  icon: FolderKanban,    label: 'Projects' },
-    { to: '/kanban',    icon: Kanban,           label: 'Kanban Board' },
-    // Admin-only
-    ...(user?.role === 'admin' ? [
-      { to: '/audit', icon: ClipboardList, label: 'Audit Log' },
-    ] : []),
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/projects',  label: 'Projects' },
+    { to: '/kanban',    label: 'Kanban Board' },
+    { to: '/audit',     label: 'Audit Log' },
   ];
 
   return (
     <aside className="sidebar">
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 12px 24px' }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10, background: 'var(--accent)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 20px var(--accent-glow)',
-        }}>
-          <CheckSquare size={20} color="#fff" />
+      <div style={{ marginBottom: 64 }}>
+        <div style={{ fontSize: 24, fontFamily: 'var(--font-serif)', fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1 }}>
+          TASKFLOW
         </div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>TaskFlow</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Team Manager</div>
+        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 8 }}>
+          System
         </div>
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '0 12px 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-          Menu
+      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
+          Index
         </div>
-        {navItems.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
           >
-            <Icon size={18} />
             {label}
           </NavLink>
         ))}
       </nav>
 
       {/* User Card */}
-      <div style={{ marginTop: 'auto', padding: '12px', borderTop: '1px solid var(--border)', borderRadius: 'var(--radius-md)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+      <div style={{ marginTop: 'auto', paddingTop: 32, borderTop: '4px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
           <div style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--accent), #8b5cf6)',
+            width: 48, height: 48,
+            background: 'var(--foreground)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0,
+            fontSize: 16, fontFamily: 'var(--font-serif)', fontStyle: 'italic', color: 'var(--background)'
           }}>
             {getInitials(user?.name)}
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 14, fontFamily: 'var(--font-mono)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.name}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+            <div style={{ fontSize: 12, fontFamily: 'var(--font-serif)', fontStyle: 'italic', color: 'var(--muted-foreground)' }}>
               {user?.role}
             </div>
           </div>
         </div>
-        <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', fontSize: 13 }} onClick={handleLogout}>
-          <LogOut size={15} /> Log out
+        <button className="btn btn-outline" style={{ width: '100%' }} onClick={handleLogout}>
+          Log out
         </button>
       </div>
     </aside>

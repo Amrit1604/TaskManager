@@ -49,11 +49,15 @@ const ProjectController = {
     }
   },
 
-  /** PUT /projects/:id — admin only */
+  /** PUT /projects/:id — admin or creator */
   async update(req, res, next) {
     try {
       const project = await ProjectModel.findById(req.params.id);
       if (!project) return res.status(404).json({ error: true, message: 'Project not found' });
+
+      if (req.user.role !== 'admin' && project.created_by !== req.user.id) {
+        return res.status(403).json({ error: true, message: 'Only admins or the project creator can edit this project' });
+      }
 
       const updated = await ProjectModel.update(req.params.id, req.body);
       res.json({ message: 'Project updated', project: updated });
@@ -62,11 +66,15 @@ const ProjectController = {
     }
   },
 
-  /** DELETE /projects/:id — admin only (soft delete) */
+  /** DELETE /projects/:id — admin or creator (soft delete) */
   async remove(req, res, next) {
     try {
       const project = await ProjectModel.findById(req.params.id);
       if (!project) return res.status(404).json({ error: true, message: 'Project not found' });
+
+      if (req.user.role !== 'admin' && project.created_by !== req.user.id) {
+        return res.status(403).json({ error: true, message: 'Only admins or the project creator can delete this project' });
+      }
 
       await ProjectModel.softDelete(req.params.id);
       res.json({ message: 'Project deleted' });
@@ -75,11 +83,15 @@ const ProjectController = {
     }
   },
 
-  /** POST /projects/:id/members — admin only */
+  /** POST /projects/:id/members — admin or creator */
   async addMember(req, res, next) {
     try {
       const project = await ProjectModel.findById(req.params.id);
       if (!project) return res.status(404).json({ error: true, message: 'Project not found' });
+
+      if (req.user.role !== 'admin' && project.created_by !== req.user.id) {
+        return res.status(403).json({ error: true, message: 'Only admins or the project creator can manage members' });
+      }
 
       const user = await UserModel.findById(req.body.userId);
       if (!user) return res.status(404).json({ error: true, message: 'User not found' });
@@ -91,9 +103,16 @@ const ProjectController = {
     }
   },
 
-  /** DELETE /projects/:id/members/:userId — admin only */
+  /** DELETE /projects/:id/members/:userId — admin or creator */
   async removeMember(req, res, next) {
     try {
+      const project = await ProjectModel.findById(req.params.id);
+      if (!project) return res.status(404).json({ error: true, message: 'Project not found' });
+
+      if (req.user.role !== 'admin' && project.created_by !== req.user.id) {
+        return res.status(403).json({ error: true, message: 'Only admins or the project creator can manage members' });
+      }
+
       await ProjectModel.removeMember(req.params.id, req.params.userId);
       res.json({ message: 'Member removed from project' });
     } catch (err) {

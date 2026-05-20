@@ -174,36 +174,29 @@ TASKMANAGER/
 
 ---
 
-## Deploying to Railway
+## Deploying to Render
 
-1. Create a Railway account at [railway.app](https://railway.app)
-2. Create a new project with **three services**:
-   - MySQL database
-   - Backend (from `/backend` directory)
-   - Frontend (from `/frontend` directory)
+We have configured the app to deploy as a single **Web Service** on Render, which builds both the frontend and backend.
 
-3. **Backend service variables** (copy from `.env.example`, fill in Railway's MySQL credentials):
-   ```
-   DB_HOST=<from railway mysql service>
-   DB_PORT=<from railway>
-   DB_USER=<from railway>
-   DB_PASSWORD=<from railway>
-   DB_NAME=taskmanager
-   JWT_SECRET=<generate a random 32+ char string>
-   FRONTEND_URL=https://<your-frontend.railway.app>
-   NODE_ENV=production
-   COOKIE_SECURE=true
-   ```
+**Note about the Database:** Render provides managed PostgreSQL natively, not MySQL. Since this project uses MySQL, you must use an external MySQL provider (like [Aiven](https://aiven.io/mysql) or [TiDB](https://en.pingcap.com/tidb-cloud/)) and provide the connection details to Render.
 
-4. **Frontend service variables:**
-   ```
-   VITE_API_URL=https://<your-backend.railway.app>
-   ```
+### Steps to Deploy
 
-5. In the Railway MySQL console, run `backend/db/schema.sql` to create tables.
+1. Create a Render account at [render.com](https://render.com)
+2. Connect your GitHub repository to Render.
+3. Click **New +** -> **Blueprint**.
+4. Select your repository. Render will automatically read the `render.yaml` file in the root directory.
+5. Provide a Name for the service when prompted.
+6. **Environment Variables**: Render will ask you for the database credentials. Enter the credentials from your external MySQL provider:
+   - `DB_HOST`
+   - `DB_PORT`
+   - `DB_USER`
+   - `DB_PASSWORD`
+   - `DB_NAME`
+7. Click **Apply**.
+8. Once the database is connected, make sure to run the `backend/db/schema.sql` file against your remote database to create the tables.
 
-6. Set the backend start command: `npm start`
-7. Set the frontend build command: `npm run build` and output: `dist/`
+The `render.yaml` will automatically build the React frontend and serve it securely via the Express backend.
 
 ---
 

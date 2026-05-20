@@ -1,13 +1,12 @@
 /**
  * pages/ProjectsPage.jsx
- * Lists all projects. Admin can create, delete.
+ * Minimalist Monochrome project list.
  */
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { projectsAPI } from '../api';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
-import { FolderKanban, Plus, Trash2, Users, ArrowRight, Calendar } from 'lucide-react';
 import { formatDate } from '../utils/helpers';
 import toast from 'react-hot-toast';
 
@@ -23,7 +22,7 @@ function CreateProjectModal({ onClose, onCreated }) {
     setLoading(true);
     try {
       await projectsAPI.create(form);
-      toast.success('Project created!');
+      toast.success('PROJECT ESTABLISHED');
       onCreated();
       onClose();
     } catch (err) {
@@ -36,25 +35,25 @@ function CreateProjectModal({ onClose, onCreated }) {
   };
 
   return (
-    <Modal title="New Project" onClose={onClose}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <Modal title="Establish Project" onClose={onClose}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
         <div>
-          <label htmlFor="proj-name">Project Name *</label>
+          <label htmlFor="proj-name">Project Nomenclature</label>
           <input id="proj-name" className="input" value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="e.g. Website Redesign" required />
-          {fieldErr('name') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>{fieldErr('name')}</p>}
+            placeholder="e.g. Q4 Editorial" required />
+          {fieldErr('name') && <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, marginTop: 8, fontWeight: 700 }}>ERROR: {fieldErr('name')}</p>}
         </div>
         <div>
-          <label htmlFor="proj-desc">Description</label>
+          <label htmlFor="proj-desc">Executive Summary</label>
           <textarea id="proj-desc" className="input" value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="What is this project about?" rows={3} style={{ resize: 'vertical' }} />
+            placeholder="Brief abstract..." rows={4} style={{ resize: 'vertical' }} />
         </div>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'flex-end', borderTop: '2px solid var(--border)', paddingTop: 24 }}>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Dismiss</button>
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Creating…' : 'Create Project'}
+            {loading ? 'Processing...' : 'Establish'}
           </button>
         </div>
       </form>
@@ -64,7 +63,6 @@ function CreateProjectModal({ onClose, onCreated }) {
 
 export default function ProjectsPage() {
   const { user } = useAuth();
-  const isAdmin  = user?.role === 'admin';
 
   const [projects, setProjects] = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -84,86 +82,60 @@ export default function ProjectsPage() {
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  const handleDelete = async (project) => {
-    if (!confirm(`Delete project "${project.name}"? This is a soft delete — data is preserved.`)) return;
-    try {
-      await projectsAPI.delete(project.id);
-      toast.success('Project deleted');
-      fetchProjects();
-    } catch {
-      toast.error('Failed to delete project');
-    }
-  };
-
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+    <div className="fade-in">
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 64, flexWrap: 'wrap', gap: 32 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <FolderKanban size={22} color="var(--accent-light)" />
-            <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Projects</h1>
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-8xl" style={{ fontFamily: 'var(--font-serif)', marginBottom: 16 }}>
+            Projects.
+          </h1>
+          <div className="rule-thick" style={{ width: 160, marginBottom: 16 }}></div>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Directory of {projects.length} initiative{projects.length !== 1 ? 's' : ''}
+          </p>
         </div>
-        {isAdmin && (
-          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-            <Plus size={16} /> New Project
-          </button>
-        )}
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+          New Project
+        </button>
       </div>
 
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-          {[1,2,3].map((i) => <div key={i} className="skeleton" style={{ height: 180 }} />)}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 32 }}>
+          {[1,2,3,4].map((i) => <div key={i} className="skeleton" style={{ height: 240 }} />)}
         </div>
       ) : projects.length === 0 ? (
-        <div className="card" style={{ padding: 60, textAlign: 'center' }}>
-          <FolderKanban size={48} color="var(--text-muted)" style={{ margin: '0 auto 16px', display: 'block' }} />
-          <h3 style={{ color: 'var(--text-primary)', marginBottom: 8 }}>No projects yet</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-            {isAdmin ? 'Create your first project to get started.' : 'You haven\'t been added to any projects yet.'}
+        <div className="card texture-grid" style={{ padding: 120, textAlign: 'center', border: '4px solid var(--border)' }}>
+          <h3 className="text-5xl" style={{ fontFamily: 'var(--font-serif)', marginBottom: 16 }}>Empty Directory</h3>
+          <p style={{ fontFamily: 'var(--font-sans)', fontSize: 20, fontStyle: 'italic', color: 'var(--muted-foreground)' }}>
+            Establish a project to begin.
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 32 }}>
           {projects.map((project) => (
-            <div key={project.id} className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--accent-glow)', border: '1px solid var(--border-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FolderKanban size={20} color="var(--accent-light)" />
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{project.name}</h3>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>by {project.creator_name}</div>
-                  </div>
+            <Link key={project.id} to={`/projects/${project.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div className="card card-hover" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <h3 className="text-4xl" style={{ fontFamily: 'var(--font-serif)', marginBottom: 8, lineHeight: 1.1 }}>{project.name}</h3>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 24, paddingBottom: 16, borderBottom: '2px solid var(--border)' }}>
+                  Led by {project.creator_name}
                 </div>
-                {isAdmin && (
-                  <button className="btn btn-ghost" style={{ padding: 6, minWidth: 'auto' }}
-                    onClick={() => handleDelete(project)} title="Delete project">
-                    <Trash2 size={15} color="var(--danger)" />
-                  </button>
+                
+                {project.description && (
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 16, lineHeight: 1.6, marginBottom: 32, flex: 1 }}>
+                    {project.description.slice(0, 150)}{project.description.length > 150 ? '…' : ''}
+                  </p>
                 )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 24, borderTop: '1px solid var(--border)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    Est. {formatDate(project.created_at)}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700 }}>
+                    ENTER →
+                  </span>
+                </div>
               </div>
-
-              {project.description && (
-                <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  {project.description.slice(0, 100)}{project.description.length > 100 ? '…' : ''}
-                </p>
-              )}
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 13, color: 'var(--text-muted)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Calendar size={13} /> {formatDate(project.created_at)}
-                </span>
-              </div>
-
-              <Link to={`/projects/${project.id}`}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--accent-light)', fontWeight: 500, fontSize: 14, textDecoration: 'none', padding: '8px 0', borderTop: '1px solid var(--border)', marginTop: 'auto' }}>
-                View Project <ArrowRight size={15} />
-              </Link>
-            </div>
+            </Link>
           ))}
         </div>
       )}

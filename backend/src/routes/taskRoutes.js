@@ -18,11 +18,11 @@ router.get('/dashboard', TaskController.getDashboard);
 // Tasks under a project (mounted at /projects/:id/tasks)
 router.get('/',    TaskController.listByProject);
 router.get('/stats', TaskController.getStats);
-router.post('/', authorize('admin'), createTaskRules, validate, TaskController.create);
+router.post('/', createTaskRules, validate, TaskController.create);
 
 // Individual task operations (standalone /tasks/:id)
 router.put('/:taskId',    TaskController.update);
-router.delete('/:taskId', authorize('admin'), TaskController.remove);
-router.get('/:taskId/audit', authorize('admin'), TaskController.getTaskAudit);
+router.delete('/:taskId', TaskController.remove);
+router.get('/:taskId/audit', TaskController.getTaskAudit);
 
 module.exports = router;

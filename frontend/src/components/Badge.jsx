@@ -1,25 +1,32 @@
 /**
  * components/Badge.jsx
- * Status and priority badges with consistent colour coding.
+ * Minimalist Monochrome badges.
  */
 export function StatusBadge({ status }) {
-  const map = {
-    todo:        'badge badge-todo',
-    in_progress: 'badge badge-in-progress',
-    done:        'badge badge-done',
+  const labels = {
+    todo: 'To Do',
+    in_progress: 'In Progress',
+    done: 'Done',
   };
-  const label = { todo: 'To Do', in_progress: 'In Progress', done: 'Done' };
-  return <span className={map[status] || 'badge'}>{label[status] || status}</span>;
+
+  const isDone = status === 'done';
+
+  return (
+    <span className={`badge ${isDone ? 'badge-inverted' : ''}`}>
+      {labels[status] || status}
+    </span>
+  );
 }
 
 export function PriorityBadge({ priority }) {
-  const map = {
-    low:    'badge badge-low',
-    medium: 'badge badge-medium',
-    high:   'badge badge-high',
-  };
+  const isHigh = priority === 'high';
+
   return (
-    <span className={map[priority] || 'badge'} style={{ textTransform: 'capitalize' }}>
+    <span className="badge" style={{ 
+      borderWidth: isHigh ? '3px' : '1px', 
+      fontWeight: isHigh ? 800 : 600,
+      borderColor: 'var(--foreground)'
+    }}>
       {priority}
     </span>
   );

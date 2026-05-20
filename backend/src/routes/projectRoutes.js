@@ -19,13 +19,13 @@ router.get('/',    ProjectController.list);
 // Single project
 router.get('/:id', ProjectController.get);
 
-// Admin only: create, update, delete
-router.post('/',    authorize('admin'), createProjectRules, validate, ProjectController.create);
-router.put('/:id',  authorize('admin'), updateProjectRules, validate, ProjectController.update);
-router.delete('/:id', authorize('admin'), ProjectController.remove);
+// Admin or creator only: create, update, delete
+router.post('/',    createProjectRules, validate, ProjectController.create);
+router.put('/:id',  updateProjectRules, validate, ProjectController.update);
+router.delete('/:id', ProjectController.remove);
 
-// Admin only: manage members
-router.post('/:id/members',             authorize('admin'), addMemberRules, validate, ProjectController.addMember);
-router.delete('/:id/members/:userId',   authorize('admin'), ProjectController.removeMember);
+// Admin or creator only: manage members
+router.post('/:id/members',             addMemberRules, validate, ProjectController.addMember);
+router.delete('/:id/members/:userId',   ProjectController.removeMember);
 
 module.exports = router;

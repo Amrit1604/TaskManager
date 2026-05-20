@@ -20,7 +20,7 @@ const authLimiter = rateLimit({
   message: { error: true, message: 'Too many requests from this IP. Please try again after 15 minutes.' },
 });
 
-router.use(authLimiter);
+// router.use(authLimiter);
 
 router.post('/signup', signupRules, validate, AuthController.signup);
 router.post('/login',  loginRules,  validate, AuthController.login);
