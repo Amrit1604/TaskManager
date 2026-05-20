@@ -3,8 +3,7 @@
 -- Run this file once to initialize the database
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS tasky CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE tasky;
+-- We will use the provided defaultdb from Aiven
 
 -- ----------------------------------------------------------------
 -- Users
