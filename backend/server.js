@@ -60,17 +60,8 @@ const authenticate = require('./src/middleware/authenticate');
 const TaskController = require('./src/controllers/taskController');
 app.get('/api/projects/:id/audit', authenticate, TaskController.getProjectAudit);
 
-// ── Serve Frontend in Production ──────────────────────────────
-const path = require('path');
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-  app.get('(.*)', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
-  });
-} else {
-  // ── Error Handling for API (only active if not caught by static handler) ──
-  app.use(notFound);
-}
+// ── Error Handling for API ────────────────────────────────────
+app.use(notFound);
 app.use(errorHandler);
 
 // ── Start ─────────────────────────────────────────────────────
